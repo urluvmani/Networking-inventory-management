@@ -1,0 +1,34 @@
+QUICK START - Inventory Agent Installation
+===========================================
+
+EASIEST METHOD (Recommended):
+------------------------------
+1. Copy 'Install-Agent.bat' to your Desktop
+2. Double-click 'Install-Agent.bat'
+3. Click "Yes" when prompted
+4. Wait for green "Installation Complete!" message
+5. Done!
+
+WHAT IT DOES:
+------------
+- Installs Inventory Agent on your computer
+- Configures firewall to allow agent communication
+- Sets up auto-start on system boot
+- No manual steps required after installation
+
+VERIFICATION:
+------------
+After installation, you can verify it's working:
+1. Open the web application
+2. Go to Systems tab
+3. Click the purple CPU icon next to your computer
+4. Hardware details should appear automatically
+
+TROUBLESHOOTING:
+---------------
+If you see errors:
+- Make sure you clicked "Yes" when prompted by UAC
+- Check that Windows Firewall is enabled
+- Contact your system administrator
+
+Note: This agent only works on your local network.
