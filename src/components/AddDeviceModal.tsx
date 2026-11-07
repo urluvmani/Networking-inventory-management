@@ -16,6 +16,8 @@ export default function AddDeviceModal({ onClose, onSuccess, type }: AddDeviceMo
     department: '',
     connectionType: 'IP-based',
     ipAddress: '',
+    defaultGateway: '',
+    adminPassword: '',
   });
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -176,20 +178,57 @@ export default function AddDeviceModal({ onClose, onSuccess, type }: AddDeviceMo
           </div>
 
           {formData.connectionType === 'IP-based' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                IP Address
-              </label>
-              <input
-                type="text"
-                required={formData.connectionType === 'IP-based'}
-                value={formData.ipAddress}
-                onChange={(e) => setFormData({ ...formData, ipAddress: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., 172.18.1.100"
-                pattern="^(\d{1,3}\.){3}\d{1,3}$"
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  IP Address
+                </label>
+                <input
+                  type="text"
+                  required={formData.connectionType === 'IP-based'}
+                  value={formData.ipAddress}
+                  onChange={(e) => setFormData({ ...formData, ipAddress: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., 172.18.1.100"
+                  pattern="^(\d{1,3}\.){3}\d{1,3}$"
+                />
+              </div>
+
+              {type === 'systems' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Default Gateway
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.defaultGateway}
+                      onChange={(e) => setFormData({ ...formData, defaultGateway: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., 192.168.1.1"
+                      pattern="^(\d{1,3}\.){3}\d{1,3}$"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Admin Password
+                    </label>
+                    <select
+                      value={formData.adminPassword}
+                      onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select Password</option>
+                      <option value="P@$$C00">P@$$C00</option>
+                      <option value="Pride">Pride</option>
+                      <option value="com123">com123</option>
+                      <option value="Capital.com">Capital.com</option>
+                    </select>
+                  </div>
+                </>
+              )}
+            </>
           )}
 
           <div className="flex gap-4 pt-4">

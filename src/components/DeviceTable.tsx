@@ -11,6 +11,8 @@ interface Device {
   department: string;
   connectionType: string;
   ipAddress?: string;
+  defaultGateway?: string;
+  adminPassword?: string;
   status?: string;
   lastChecked?: string;
   uptimePercentage?: number;
@@ -354,7 +356,11 @@ export default function DeviceTable({ activeTab, onUpdate, searchFilters }: Devi
                   <th className="text-left py-3 px-4 font-semibold text-gray-700 bg-white">Connection</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700 bg-white">IP Address</th>
                   {activeTab === 'systems' && (
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 bg-white">Hardware</th>
+                    <>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 bg-white">Gateway</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 bg-white">Admin Pass</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 bg-white">Hardware</th>
+                    </>
                   )}
                   {(activeTab === 'printers' || activeTab === 'systems') && (
                     <>
@@ -435,9 +441,33 @@ export default function DeviceTable({ activeTab, onUpdate, searchFilters }: Devi
                         />
                       </td>
                       {activeTab === 'systems' && (
-                        <td className="py-3 px-4 text-gray-400 text-xs">
-                          Auto-synced
-                        </td>
+                        <>
+                          <td className="py-3 px-4">
+                            <input
+                              type="text"
+                              value={editingDevice.defaultGateway || ''}
+                              onChange={(e) => setEditingDevice({ ...editingDevice, defaultGateway: e.target.value })}
+                              className="w-full px-2 py-1 border rounded"
+                              placeholder="e.g., 192.168.1.1"
+                            />
+                          </td>
+                          <td className="py-3 px-4">
+                            <select
+                              value={editingDevice.adminPassword || ''}
+                              onChange={(e) => setEditingDevice({ ...editingDevice, adminPassword: e.target.value })}
+                              className="w-full px-2 py-1 border rounded"
+                            >
+                              <option value="">Select Password</option>
+                              <option value="P@$$C00">P@$$C00</option>
+                              <option value="Pride">Pride</option>
+                              <option value="com123">com123</option>
+                              <option value="Capital.com">Capital.com</option>
+                            </select>
+                          </td>
+                          <td className="py-3 px-4 text-gray-400 text-xs">
+                            Auto-synced
+                          </td>
+                        </>
                       )}
                       <td className="py-3 px-4">
                         <button
@@ -472,7 +502,28 @@ export default function DeviceTable({ activeTab, onUpdate, searchFilters }: Devi
                         {device.ipAddress || '-'}
                       </td>
                       {activeTab === 'systems' && (
-                        <td className="py-3 px-4">
+                        <>
+                          <td className="py-3 px-4 text-gray-700 font-mono text-sm">
+                            {device.defaultGateway || '-'}
+                          </td>
+                          <td className="py-3 px-4">
+                            {device.adminPassword ? (
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                device.adminPassword === 'P@$$C00'
+                                  ? 'bg-purple-100 text-purple-800'
+                                  : device.adminPassword === 'Pride'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : device.adminPassword === 'com123'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-orange-100 text-orange-800'
+                              }`}>
+                                {device.adminPassword}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">Not set</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
                           {device.hardwareDetails ? (
                             <div className="text-xs space-y-1">
                               <div
@@ -513,6 +564,7 @@ Motherboard: ${device.hardwareDetails.motherboard || 'N/A'}`}
                             <span className="text-gray-400 text-xs">Not synced</span>
                           )}
                         </td>
+                        </>
                       )}
                       {(activeTab === 'printers' || activeTab === 'systems') && (
                         <>

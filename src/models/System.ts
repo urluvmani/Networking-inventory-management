@@ -6,6 +6,8 @@ export interface ISystem extends Document {
   department: string;
   connectionType: 'IP-based' | 'Cable-connected';
   ipAddress?: string;
+  defaultGateway?: string;
+  adminPassword?: 'P@$$C00' | 'Pride' | 'com123' | 'Capital.com';
   status?: 'online' | 'offline' | 'unknown';
   lastChecked?: Date;
   uptimePercentage?: number;
@@ -58,6 +60,14 @@ const SystemSchema = new Schema<ISystem>(
     ipAddress: {
       type: String,
       trim: true,
+    },
+    defaultGateway: {
+      type: String,
+      trim: true,
+    },
+    adminPassword: {
+      type: String,
+      enum: ['P@$$C00', 'Pride', 'com123', 'Capital.com'],
     },
     status: {
       type: String,
