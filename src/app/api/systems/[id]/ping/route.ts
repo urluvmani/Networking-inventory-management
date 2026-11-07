@@ -87,9 +87,14 @@ export async function POST(
         }
 
         // Detect admin password
+        console.log('Starting admin password detection for:', system.ipAddress);
         const detectedPassword = await detectAdminPassword(system.ipAddress);
+        console.log('Detected password result:', detectedPassword);
         if (detectedPassword) {
           system.adminPassword = detectedPassword;
+          console.log('Admin password saved to database:', detectedPassword);
+        } else {
+          console.log('No admin password detected');
         }
       } catch (error) {
         console.error('Error fetching hardware details:', error);

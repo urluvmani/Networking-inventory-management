@@ -41,24 +41,28 @@ export async function detectAdminPassword(
   }
 
   console.log('Detecting admin password for system:', ip);
+  console.log('Trying passwords:', PASSWORDS);
 
   for (const adminPass of PASSWORDS) {
     try {
+      console.log('Trying password:', adminPass);
       const psScript = `$ErrorActionPreference = 'Stop'; try { $securePassword = ConvertTo-SecureString '${escapePowershellString(adminPass)}' -AsPlainText -Force; $credential = New-Object System.Management.Automation.PSCredential('${escapePowershellString(userForWMI)}', $securePassword); $scriptBlock = { Write-Output "SUCCESS" }; $result = Invoke-Command -ComputerName ${ip} -Credential $credential -ScriptBlock $scriptBlock -ErrorAction Stop; Write-Output $result } catch { Write-Output "ERROR:$($_.Exception.Message)" }`;
 
       const psResult = await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript}"`);
+      console.log('Password test result for', adminPass, ':', psResult.stdout);
 
       if (psResult.stdout.includes('SUCCESS')) {
         console.log('Admin password detected:', adminPass);
         return adminPass;
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.log('Password', adminPass, 'failed with error:', error.message);
       // Password didn't work, try next one
       continue;
     }
   }
 
-  console.log('No matching admin password found');
+  console.log('No matching admin password found from:', PASSWORDS);
   return undefined;
 }
 
