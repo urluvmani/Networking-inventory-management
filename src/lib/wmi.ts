@@ -13,6 +13,53 @@ export interface HardwareDetails {
   cpu?: string;
   os?: string;
   motherboard?: string;
+  adminPassword?: string;
+  defaultGateway?: string;
+}
+
+const PASSWORDS = ['P@$$C00', 'Pride', 'com123', 'Capital.com'];
+
+export async function detectAdminPassword(
+  ip: string,
+  username?: string,
+  password?: string
+): Promise<string | undefined> {
+  const wmiUser = username || process.env.WMI_USER;
+  const wmiPassword = password || process.env.WMI_PASSWORD;
+
+  if (!wmiUser || !wmiPassword) {
+    console.log('WMI credentials not provided. Cannot detect admin password.');
+    return undefined;
+  }
+
+  let userForWMI = wmiUser;
+  if (wmiUser.includes('@')) {
+    const [user, domain] = wmiUser.split('@');
+    userForWMI = `${domain}\\${user}`;
+  } else if (!wmiUser.includes('\\')) {
+    userForWMI = `bpride.com\\${wmiUser}`;
+  }
+
+  console.log('Detecting admin password for system:', ip);
+
+  for (const adminPass of PASSWORDS) {
+    try {
+      const psScript = `$ErrorActionPreference = 'Stop'; try { $securePassword = ConvertTo-SecureString '${escapePowershellString(adminPass)}' -AsPlainText -Force; $credential = New-Object System.Management.Automation.PSCredential('${escapePowershellString(userForWMI)}', $securePassword); $scriptBlock = { Write-Output "SUCCESS" }; $result = Invoke-Command -ComputerName ${ip} -Credential $credential -ScriptBlock $scriptBlock -ErrorAction Stop; Write-Output $result } catch { Write-Output "ERROR:$($_.Exception.Message)" }`;
+
+      const psResult = await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript}"`);
+
+      if (psResult.stdout.includes('SUCCESS')) {
+        console.log('Admin password detected:', adminPass);
+        return adminPass;
+      }
+    } catch (error) {
+      // Password didn't work, try next one
+      continue;
+    }
+  }
+
+  console.log('No matching admin password found');
+  return undefined;
 }
 
 export async function getRemoteHardwareDetails(
@@ -48,7 +95,7 @@ export async function getRemoteHardwareDetails(
     try {
       console.log('Attempting PowerShell Remoting...');
 
-      const psScript = `$ErrorActionPreference = 'Stop'; try { $securePassword = ConvertTo-SecureString '${escapePowershellString(wmiPassword)}' -AsPlainText -Force; $credential = New-Object System.Management.Automation.PSCredential('${escapePowershellString(userForWMI)}', $securePassword); $scriptBlock = { $ram = Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum; $disks = Get-WmiObject Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3 } | Sort-Object DeviceID; $cpu = Get-WmiObject Win32_Processor | Select-Object -First 1; $os = Get-WmiObject Win32_OperatingSystem; $motherboard = Get-WmiObject Win32_BaseBoard; $ramGB = [math]::Round($ram.Sum / 1GB, 0); $diskInfo = @(); foreach ($disk in $disks) { $diskGB = [math]::Round($disk.Size / 1GB, 0); $freeGB = [math]::Round($disk.FreeSpace / 1GB, 0); $diskInfo += $disk.DeviceID + ' ' + $diskGB + ' GB' + ' (Free: ' + $freeGB + ' GB)' }; $disksString = if ($diskInfo.Count -gt 0) { $diskInfo -join '; ' } else { 'No drives found' }; @{ RAM = $ramGB; DISK = $disksString; CPU = $cpu.Name; OS = $os.Caption; MOTHERBOARD = $motherboard.Product } }; $result = Invoke-Command -ComputerName ${ip} -Credential $credential -ScriptBlock $scriptBlock; Write-Output "RAM:$($result.RAM)"; Write-Output "DISK:$($result.DISK)"; Write-Output "CPU:$($result.CPU)"; Write-Output "OS:$($result.OS)"; Write-Output "MOTHERBOARD:$($result.MOTHERBOARD)" } catch { Write-Output "ERROR:$($_.Exception.Message)" }`;
+      const psScript = `$ErrorActionPreference = 'Stop'; try { $securePassword = ConvertTo-SecureString '${escapePowershellString(wmiPassword)}' -AsPlainText -Force; $credential = New-Object System.Management.Automation.PSCredential('${escapePowershellString(userForWMI)}', $securePassword); $scriptBlock = { $ram = Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum; $disks = Get-WmiObject Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3 } | Sort-Object DeviceID; $cpu = Get-WmiObject Win32_Processor | Select-Object -First 1; $os = Get-WmiObject Win32_OperatingSystem; $motherboard = Get-WmiObject Win32_BaseBoard; $gateway = (Get-NetRoute -DestinationPrefix "0.0.0.0/0" | Select-Object -ExpandProperty NextHop -ErrorAction SilentlyContinue); if (-not $gateway) { $gateway = (Get-WmiObject Win32_IP4RouteTable | Where-Object { $_.Destination -eq "0.0.0.0" } | Select-Object -ExpandProperty NextHop -ErrorAction SilentlyContinue) }; $ramGB = [math]::Round($ram.Sum / 1GB, 0); $diskInfo = @(); foreach ($disk in $disks) { $diskGB = [math]::Round($disk.Size / 1GB, 0); $freeGB = [math]::Round($disk.FreeSpace / 1GB, 0); $diskInfo += $disk.DeviceID + ' ' + $diskGB + ' GB' + ' (Free: ' + $freeGB + ' GB)' }; $disksString = if ($diskInfo.Count -gt 0) { $diskInfo -join '; ' } else { 'No drives found' }; @{ RAM = $ramGB; DISK = $disksString; CPU = $cpu.Name; OS = $os.Caption; MOTHERBOARD = $motherboard.Product; GATEWAY = $gateway } }; $result = Invoke-Command -ComputerName ${ip} -Credential $credential -ScriptBlock $scriptBlock; Write-Output "RAM:$($result.RAM)"; Write-Output "DISK:$($result.DISK)"; Write-Output "CPU:$($result.CPU)"; Write-Output "OS:$($result.OS)"; Write-Output "MOTHERBOARD:$($result.MOTHERBOARD)"; Write-Output "GATEWAY:$($result.GATEWAY)" } catch { Write-Output "ERROR:$($_.Exception.Message)" }`;
 
       const psResult = await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript}"`);
       console.log('PowerShell result:', psResult.stdout);
@@ -83,6 +130,11 @@ export async function getRemoteHardwareDetails(
           const mbVal = line.replace('MOTHERBOARD:', '').trim();
           if (mbVal !== 'Unknown') {
             details.motherboard = mbVal;
+          }
+        } else if (line.startsWith('GATEWAY:')) {
+          const gatewayVal = line.replace('GATEWAY:', '').trim();
+          if (gatewayVal && gatewayVal !== '') {
+            details.defaultGateway = gatewayVal;
           }
         }
       }

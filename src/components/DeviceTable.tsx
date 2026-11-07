@@ -180,6 +180,8 @@ export default function DeviceTable({ activeTab, onUpdate, searchFilters }: Devi
                 lastChecked: deviceData.lastChecked,
                 hardwareDetails: deviceData.hardwareDetails,
                 previousHardwareDetails: deviceData.previousHardwareDetails,
+                defaultGateway: deviceData.defaultGateway,
+                adminPassword: deviceData.adminPassword,
                 pinging: false
               }
             : d

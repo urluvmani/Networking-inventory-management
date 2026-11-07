@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import System from '@/models/System';
 import { pingIP } from '@/lib/ping';
-import { getRemoteHardwareDetails, detectHardwareChanges, detectSignificantHardwareChanges } from '@/lib/wmi';
+import { getRemoteHardwareDetails, detectHardwareChanges, detectSignificantHardwareChanges, detectAdminPassword } from '@/lib/wmi';
 
 export async function POST(
   request: NextRequest,
@@ -79,6 +79,17 @@ export async function POST(
           hardwareChanges = significantChanges;
 
           system.hardwareDetails = newHardwareDetails;
+
+          // Update default gateway if detected
+          if (newHardwareDetails.defaultGateway) {
+            system.defaultGateway = newHardwareDetails.defaultGateway;
+          }
+        }
+
+        // Detect admin password
+        const detectedPassword = await detectAdminPassword(system.ipAddress);
+        if (detectedPassword) {
+          system.adminPassword = detectedPassword;
         }
       } catch (error) {
         console.error('Error fetching hardware details:', error);
@@ -96,6 +107,8 @@ export async function POST(
         lastChecked: system.lastChecked,
         uptimePercentage: system.uptimePercentage,
         ipAddress: system.ipAddress,
+        defaultGateway: system.defaultGateway,
+        adminPassword: system.adminPassword,
         responseTime: pingResult.responseTime,
         hardwareDetails: system.hardwareDetails,
         previousHardwareDetails: system.previousHardwareDetails,
